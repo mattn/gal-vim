@@ -10,28 +10,41 @@ function! s:rand()
   return (s:seed < 0 ? s:seed - 0x80000000 : s:seed) / 0x10000 % 0x8000
 endfunction
 
-function! s:gal()
-  let r = has_key(s:galson, v:char) ? s:galson[v:char] : [v:char]
+function! s:gal(v)
+  let r = has_key(s:galson, a:v) ? s:galson[a:v] : [a:v]
   let l = len(r)
-  return l ? r[s:rand() % l] : v:char
+  return l ? r[s:rand() % l] : a:v
+endfunction
+
+function! s:gal_load()
+  if empty(s:galson)
+    let s:galson = webapi#json#decode(join(readfile(s:file), "\n"))
+  endif
 endfunction
 
 let s:file = expand('<sfile>:h').'/gal.json'
 function! s:gal_on()
-  let s:galson = webapi#json#decode(join(readfile(s:file), "\n"))
+  call s:gal_load()
   call s:srand(localtime())
   augroup Gal
     au!
-    autocmd InsertCharPre <buffer> let v:char = s:gal()
+    autocmd InsertCharPre <buffer> let v:char = s:gal(v:char)
   augroup END
 endfunction
 
 function! s:gal_off()
-  call s:srand(localtime())
   augroup Gal
     au!
   augroup END
 endfunction
 
+function! s:gal_replace() range
+  call s:gal_load()
+  for n in range(a:firstline, a:lastline)
+    call setline(n, join(map(split(getline(n), '\zs'), 's:gal(v:val)'), ''))
+  endfor
+endfunction
+
 command! -nargs=0 GalOn call s:gal_on()
 command! -nargs=0 GalOff call s:gal_off()
+command! -nargs=0 -range GalReplace <line1>,<line2>call s:gal_replace()
