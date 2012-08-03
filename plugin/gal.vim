@@ -10,6 +10,11 @@ function! s:rand()
   return (s:seed < 0 ? s:seed - 0x80000000 : s:seed) / 0x10000 % 0x8000
 endfunction
 
+function! g:GalReplace(s)
+  call s:gal_load()
+  return join(map(split(a:s, '\zs'), 's:gal(v:val)'), '')
+endfunction
+
 function! s:gal(v)
   let r = has_key(s:galson, a:v) ? s:galson[a:v] : [a:v]
   let l = len(r)
